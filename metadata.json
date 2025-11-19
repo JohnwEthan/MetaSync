@@ -1,0 +1,5 @@
+{
+  "name": "MetaSync CRM",
+  "description": "A specialized CRM for managing Meta Instant Form leads with auto-intake, CAPI feedback loops, AI-driven insights, and analytics.",
+  "requestFramePermissions": []
+}
