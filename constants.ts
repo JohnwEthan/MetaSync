@@ -21,31 +21,32 @@ export const PIPELINE_STAGES = [
 export const META_CONFIG = {
   PIXEL_ID: '3829128450726044',
   ACCESS_TOKEN: 'EAAUYyxZAFhq0BP5v7ZB9b9duQbjnA9bS7CZBPtNqN3JaVErT2wioJM3ipC1XNb7GP2EPmlCkdRIxUSCoTASY0zZBdW6MM2MOZBRBpqb4BDLOs0uujp3KmaHlKeDuZB6jTfpJeZBEQQ3pnuu3ifIZCIKJp8gnZCMWA5KZBFvRSNPaT8JoiEpLaZC1Dg5OwYFXnym0HGLrQZDZD',
-  // IMPORTANT: Get this from Events Manager > Test Events tab to see live events
-  TEST_EVENT_CODE: 'TEST41673' 
+  // IMPORTANT: Left empty for Production. Add a code here only when testing in Events Manager.
+  TEST_EVENT_CODE: '' 
 };
 
 export const GOOGLE_SHEET_CONFIG = {
   SHEET_ID: '1oEqCa5YxNAbIb2dirAVUFpAtG6SG47d8tZitylUE7_0',
-  TAB_NAME: 'Pool 1',
-  // Based on standard Meta Export + your provided indices
-  COL_INDEX: {
-    ID: 0,           // A
-    CREATED_TIME: 1, // B
-    AD_ID: 2,        // C
-    AD_NAME: 3,      // D
-    ADSET_ID: 4,     // E
-    ADSET_NAME: 5,   // F
-    CAMPAIGN_ID: 6,  // G
-    CAMPAIGN_NAME: 7,// H
-    FORM_ID: 8,      // I
-    FORM_NAME: 9,    // J
-    PLATFORM: 10,    // K
-    
-    // PII from your previous prompt
-    EMAIL: 15,       // P
-    NAME: 16,        // Q
-    PHONE: 17,       // R
-    STATUS: 18       // S
+  // Strictly fetching only the two requested tabs using exact GIDs
+  SHEET_TABS: [
+    { name: 'Pool Installation 1', gid: '1894242769' }, 
+    { name: 'Pool Installation 2', gid: '827160642' }   
+  ],
+  // Keywords to look for in the Header Row (Row 1) to automatically map columns
+  // This allows different forms to have different layouts.
+  HEADER_MAPPING: {
+    ID: ['id', 'lead_id'],
+    CREATED_TIME: ['created_time', 'time', 'date'],
+    NAME: ['full_name', 'fullname', 'name'],
+    // Added support for split names
+    FIRST_NAME: ['first_name', 'firstname', 'first'],
+    LAST_NAME: ['last_name', 'lastname', 'last'],
+    EMAIL: ['email', 'work_email', 'user_email'],
+    PHONE: ['phone', 'phone_number', 'mobile', 'contact'],
+    PLATFORM: ['platform', 'source'],
+    FORM_NAME: ['form_name', 'form_id'],
+    CAMPAIGN_NAME: ['campaign_name', 'campaign'],
+    AD_NAME: ['ad_name', 'ad', 'ad_id'],
+    STATUS: ['status', 'stage']
   }
 };

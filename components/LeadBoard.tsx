@@ -44,17 +44,34 @@ export const LeadBoard: React.FC<LeadBoardProps> = ({ leads, onUpdateStatus }) =
   const onDrop = (e: React.DragEvent, status: LeadStatus) => {
     e.preventDefault();
     if (draggedLeadId) {
-      // Call update in App.tsx (which has safety checks)
       onUpdateStatus(draggedLeadId, status);
       setDraggedLeadId(null);
     }
   };
 
+  // Helper to determine if we should show form/campaign text
+  const isValidText = (text: string | undefined) => {
+    if (!text) return false;
+    // Hide if it looks like a raw ID (starts with f: or c: followed by numbers)
+    if (text.trim().startsWith('f:') || text.trim().startsWith('c:')) return false;
+    return true;
+  };
+
+  // Helper for Display Name (fallback if name looks like an ID)
+  const getDisplayName = (lead: Lead) => {
+    const name = lead.fullName;
+    if (!name) return 'Unknown Lead';
+    if (name.startsWith('f:') || name.startsWith('c:')) {
+      return lead.email || lead.phone || 'Unknown Lead';
+    }
+    return name;
+  };
+
   return (
     <>
       {/* Kanban Container - Horizontal Scroll for the whole board */}
-      <div className="h-full w-full overflow-x-auto overflow-y-hidden pb-4">
-        <div className="flex h-full gap-6 min-w-max px-2">
+      <div className="h-full w-full overflow-x-auto overflow-y-hidden pb-4 custom-scrollbar bg-slate-50/50 rounded-xl border border-slate-100">
+        <div className="flex h-full gap-6 min-w-max px-4 py-4 flex-nowrap">
           {PIPELINE_STAGES.map((status) => {
             const stageLeads = leads.filter((l) => l.status === status);
             
@@ -80,7 +97,7 @@ export const LeadBoard: React.FC<LeadBoardProps> = ({ leads, onUpdateStatus }) =
                 {/* Drop Zone / List - Vertical Scroll inside each column */}
                 <div 
                   className={`flex-1 overflow-y-auto space-y-3 pr-2 pb-10 transition-colors duration-200 rounded-xl custom-scrollbar
-                    ${draggedLeadId ? 'bg-slate-50/50 border-2 border-dashed border-slate-200 min-h-[200px]' : ''}`}
+                    ${draggedLeadId ? 'bg-slate-100/50 border-2 border-dashed border-slate-200 min-h-[200px]' : ''}`}
                 >
                   {stageLeads.map((lead) => (
                     <div
@@ -90,12 +107,10 @@ export const LeadBoard: React.FC<LeadBoardProps> = ({ leads, onUpdateStatus }) =
                       onClick={() => handleLeadClick(lead)}
                       className="bg-white p-4 rounded-lg shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] border border-slate-100 hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.1)] hover:border-blue-200 transition-all cursor-grab active:cursor-grabbing group/card relative select-none"
                     >
-                      {/* Form Badge & CAPI Status */}
+                      {/* Top Row: Name & CAPI/Value */}
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate max-w-[140px] bg-slate-50 px-1.5 py-0.5 rounded">
-                          {lead.formName || 'Web Form'}
-                        </span>
-                        <div className="flex items-center gap-1">
+                        <h4 className="font-bold text-slate-900 text-base leading-tight pr-2">{getDisplayName(lead)}</h4>
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           {lead.value > 0 && (
                              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
                                {formatINR(lead.value)}
@@ -103,18 +118,33 @@ export const LeadBoard: React.FC<LeadBoardProps> = ({ leads, onUpdateStatus }) =
                           )}
                           {/* CAPI Status Indicator on Card */}
                           {lead.capiLog && (
-                            <div title={`CAPI: ${lead.capiLog.status}`}>
-                              {lead.capiLog.status === 'success' && <CheckCircle2 size={12} className="text-emerald-500" />}
-                              {lead.capiLog.status === 'pending' && <RefreshCw size={12} className="text-blue-400 animate-spin" />}
-                              {lead.capiLog.status === 'error' && <AlertCircle size={12} className="text-red-500" />}
+                            <div title={`CAPI: ${lead.capiLog.status} - ${lead.capiLog.eventName} - ${lead.capiLog.errorMessage || 'OK'}`}>
+                              {lead.capiLog.status === 'success' && <CheckCircle2 size={16} className="text-emerald-500" />}
+                              {lead.capiLog.status === 'pending' && <RefreshCw size={14} className="text-blue-400 animate-spin" />}
+                              {lead.capiLog.status === 'error' && <AlertCircle size={14} className="text-red-500" />}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Main Info */}
-                      <h4 className="font-semibold text-slate-900 text-sm leading-tight">{lead.fullName}</h4>
-                      <p className="text-xs text-slate-500 mt-1 truncate">{lead.campaignName || 'Organic'}</p>
+                      {/* Second Row: Form Name - Only show if it's a real name, not an ID */}
+                      {isValidText(lead.formName) && (
+                        <div className="mb-2">
+                           <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/50">
+                             {lead.formName}
+                           </span>
+                        </div>
+                      )}
+
+                      {/* Campaign Info - Hide if it's a raw ID */}
+                      {isValidText(lead.campaignName) && (
+                        <p className="text-xs text-slate-400 mt-1 truncate">{lead.campaignName}</p>
+                      )}
+
+                      {/* Ad Name - Added */}
+                      {isValidText(lead.adName) && (
+                        <p className="text-[10px] text-slate-300 mt-0.5 truncate">Ad: {lead.adName}</p>
+                      )}
                       
                       {/* Footer */}
                       <div className="mt-3 flex items-center justify-between pt-3 border-t border-slate-50">
@@ -140,7 +170,7 @@ export const LeadBoard: React.FC<LeadBoardProps> = ({ leads, onUpdateStatus }) =
         </div>
       </div>
 
-      {/* Lead Detail Slide-over / Modal (Superhuman Style) */}
+      {/* Lead Detail Slide-over / Modal */}
       {selectedLead && (
         <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/20 backdrop-blur-[2px]" onClick={() => setSelectedLead(null)}>
           <div 
@@ -151,7 +181,7 @@ export const LeadBoard: React.FC<LeadBoardProps> = ({ leads, onUpdateStatus }) =
             <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-start bg-white">
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                   <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{selectedLead.fullName}</h2>
+                   <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{getDisplayName(selectedLead)}</h2>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500 font-medium uppercase tracking-wide">
                   <span className={`w-2 h-2 rounded-full ${selectedLead.status === LeadStatus.CLOSED ? 'bg-emerald-500' : 'bg-blue-500'}`}></span>
@@ -213,6 +243,22 @@ export const LeadBoard: React.FC<LeadBoardProps> = ({ leads, onUpdateStatus }) =
                             <div className="text-sm font-medium text-slate-900">{selectedLead.phone}</div>
                           </div>
                         </div>
+                        {selectedLead.formName && (
+                          <div className="group flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50/50 hover:border-blue-200 transition-colors">
+                            <div>
+                              <div className="text-[10px] text-slate-400 uppercase font-semibold">Source Form</div>
+                              <div className="text-sm font-medium text-slate-900 truncate max-w-[200px]">{selectedLead.formName}</div>
+                            </div>
+                          </div>
+                        )}
+                        {selectedLead.adName && (
+                          <div className="group flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50/50 hover:border-blue-200 transition-colors">
+                            <div>
+                              <div className="text-[10px] text-slate-400 uppercase font-semibold">Ad Name</div>
+                              <div className="text-sm font-medium text-slate-900 truncate max-w-[200px]">{selectedLead.adName}</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                  </div>

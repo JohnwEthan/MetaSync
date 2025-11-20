@@ -17,7 +17,7 @@ function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{msg: string, type: 'success' | 'error' | 'info'} | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [autoSync, setAutoSync] = useState(false);
   
@@ -32,14 +32,14 @@ function App() {
   // Auto-Sync Effect
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    if (autoSync) {
+    if (autoSync && !isLoading) {
       handleSheetSync(true);
       interval = setInterval(() => {
         handleSheetSync(true);
       }, 30000);
     }
     return () => clearInterval(interval);
-  }, [autoSync]);
+  }, [autoSync, isLoading]);
 
   const loadLeads = async () => {
     setIsLoading(true);
@@ -63,6 +63,8 @@ function App() {
       } else {
         setLeads(prev => {
           const existingIds = new Set(prev.map(l => l.id));
+          // Only add leads where the ID doesn't match an existing one.
+          // Since we fixed ID generation to be deterministic, this prevents duplicates.
           const newLeads = sheetLeads.filter(l => !existingIds.has(l.id));
           
           if (newLeads.length > 0) {
@@ -114,20 +116,23 @@ function App() {
       // 4. Reconcile State with backend result (adds CAPI Log)
       setLeads(prev => prev.map(l => l.id === id ? updatedLead : l));
       
-      // Notification logic
-      if (status === LeadStatus.CLOSED) {
-        showNotification(`Deal Closed! Purchase event sent to Meta.`, "success");
+      // Notification logic for CAPI Feedback
+      if (capiResult?.status === 'success') {
+         if (status === LeadStatus.CLOSED) {
+           showNotification(`Deal Closed! Purchase event sent to Meta.`, "success");
+         } else {
+           showNotification(`Stage updated & CAPI Signal Sent (${capiResult.eventName})`, "success");
+         }
       } else if (capiResult?.status === 'error') {
         showNotification(`Status updated, but CAPI failed: ${capiResult.errorMessage}`, "error");
       }
     } catch (e) {
       showNotification("Failed to update status on server.", "error");
-      // Optional: Revert state here if critical
     }
   };
 
   const showNotification = (msg: string, type: 'success' | 'error' | 'info') => {
-    setNotification(msg);
+    setNotification({ msg, type });
     setTimeout(() => setNotification(null), 4000);
   };
 
@@ -210,7 +215,8 @@ function App() {
             {/* Auto Sync */}
             <button 
                 onClick={() => setAutoSync(!autoSync)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${autoSync ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                disabled={isLoading}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${autoSync ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'} ${isLoading ? 'opacity-50' : ''}`}
               >
                 <Zap size={16} className={autoSync ? 'fill-emerald-700' : ''} />
                 {autoSync ? 'Auto Sync On' : 'Auto Sync Off'}
@@ -218,7 +224,7 @@ function App() {
 
             <button 
               onClick={() => handleSheetSync(false)}
-              disabled={isSyncing}
+              disabled={isSyncing || isLoading}
               className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:shadow-none"
             >
               {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <Database size={16} />} 
@@ -235,11 +241,15 @@ function App() {
           </div>
         </header>
 
-        {/* Toast */}
+        {/* Toast Notification */}
         {notification && (
-          <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom duration-300">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-sm font-medium">{notification}</span>
+          <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom duration-300 border ${
+            notification.type === 'error' ? 'bg-red-50 border-red-100 text-red-900' : 
+            notification.type === 'success' ? 'bg-emerald-900 text-white border-emerald-800' :
+            'bg-slate-900 text-white border-slate-800'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${notification.type === 'error' ? 'bg-red-500' : 'bg-emerald-400'}`}></div>
+            <span className="text-sm font-medium">{notification.msg}</span>
           </div>
         )}
 
@@ -252,9 +262,13 @@ function App() {
             </div>
           </div>
         ) : (
-          <div className="animate-in fade-in duration-500 slide-in-from-bottom-4">
+          <div className="animate-in fade-in duration-500 slide-in-from-bottom-4 h-full">
             {view === View.DASHBOARD && <Dashboard leads={filteredLeads} />}
-            {view === View.PIPELINE && <LeadBoard leads={filteredLeads} onUpdateStatus={handleStatusUpdate} />}
+            {view === View.PIPELINE && (
+               <div className="h-[calc(100vh-180px)]">
+                 <LeadBoard leads={filteredLeads} onUpdateStatus={handleStatusUpdate} />
+               </div>
+            )}
           </div>
         )}
       </main>
