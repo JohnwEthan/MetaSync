@@ -71,6 +71,7 @@ export const GoogleSheetService = {
           PLATFORM: findIndex(HEADER_MAPPING.PLATFORM),
           FORM: findIndex(HEADER_MAPPING.FORM_NAME),
           CAMPAIGN: findIndex(HEADER_MAPPING.CAMPAIGN_NAME),
+          ADSET: findIndex(HEADER_MAPPING.ADSET_NAME),
           AD: findIndex(HEADER_MAPPING.AD_NAME),
           STATUS: findIndex(HEADER_MAPPING.STATUS)
         };
@@ -148,8 +149,9 @@ export const GoogleSheetService = {
             updatedAt: new Date().toISOString(),
             metaLeadId: rawId, // Keep original raw ID for reference
             value: status === LeadStatus.CLOSED ? 50000 : 0,
-            formName: getVal(idx.FORM) || tabInfo.name, // Fallback to tab name
+            formName: getVal(idx.FORM) || tabInfo.name, 
             campaignName: getVal(idx.CAMPAIGN),
+            adsetName: getVal(idx.ADSET),
             adName: getVal(idx.AD),
             platform: getVal(idx.PLATFORM),
             notes: `Imported from ${tabInfo.name}`

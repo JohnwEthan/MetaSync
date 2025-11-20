@@ -33,7 +33,7 @@ export const GOOGLE_SHEET_CONFIG = {
     { name: 'Pool Installation 2', gid: '827160642' }   
   ],
   // Keywords to look for in the Header Row (Row 1) to automatically map columns
-  // This allows different forms to have different layouts.
+  // Updated to strictly look for '_name' variants for Meta fields to avoid capturing IDs
   HEADER_MAPPING: {
     ID: ['id', 'lead_id'],
     CREATED_TIME: ['created_time', 'time', 'date'],
@@ -44,9 +44,13 @@ export const GOOGLE_SHEET_CONFIG = {
     EMAIL: ['email', 'work_email', 'user_email'],
     PHONE: ['phone', 'phone_number', 'mobile', 'contact'],
     PLATFORM: ['platform', 'source'],
-    FORM_NAME: ['form_name', 'form_id'],
-    CAMPAIGN_NAME: ['campaign_name', 'campaign'],
-    AD_NAME: ['ad_name', 'ad', 'ad_id'],
+    
+    // Strict Naming to prevent ID capture
+    FORM_NAME: ['form_name'], 
+    CAMPAIGN_NAME: ['campaign_name'],
+    ADSET_NAME: ['adset_name', 'adset'],
+    AD_NAME: ['ad_name'],
+    
     STATUS: ['status', 'stage']
   }
 };
